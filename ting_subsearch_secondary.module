@@ -45,8 +45,7 @@ function ting_subsearch_secondary_search($keys, OpenSearchTingSearchResult $resu
     $genre_facets = $facets['facet.genreCategory']->getTerms();
     // If any of fiction or non fiction is empty we cannot do the calculation.
     // Simply exit for now.
-    if (empty($genre_facets['nonfiktion'])
-      || empty($genre_facets['fiktion'])) {
+    if (empty($facets['facet.genreCategory'])) {
       watchdog('subsearch_subsearch', 'You need to enable facet.genreCategory in order for this to work.', array(), WATCHDOG_WARNING);
       return $message;
     }
@@ -56,8 +55,15 @@ function ting_subsearch_secondary_search($keys, OpenSearchTingSearchResult $resu
       return $message;
     }
 
-    $nonfiction = $genre_facets['nonfiktion']->getCount();
-    $fiction = $genre_facets['fiktion']->getCount();
+    $nonfiction = 0;
+    if (!empty($genre_facets['nonfiktion'])) {
+      $nonfiction = $genre_facets['nonfiktion']->getCount();
+    }
+
+    $fiction = 0;
+    if (!empty($genre_facets['fiktion'])) {
+      $fiction = $genre_facets['fiktion']->getCount();
+    }
 
     // Less than half fiction of nonfiction.
     if (($nonfiction / variable_get('ting_subsearch_secondary_factor', 2)) > $fiction) {
@@ -92,16 +98,17 @@ function ting_subsearch_secondary_search($keys, OpenSearchTingSearchResult $resu
         );
 
         if (variable_get('ting_subsearch_secondary_number_of_results', 4) == 0) {
-          $msg = t('If you search for "!keys" on <a href="!link">!link-text</a> instead you will get !bibdk-num-results hits',
+          $msg = t('If you search for "!keys" on !link-text instead you will get !bibdk-num-results hits',
             $options
           );
         }
         else {
-          $msg = t('If you search for "!keys" on <a href="!link">!link-text</a> instead you will get !bibdk-num-results hits where some of them is the following: !examples',
+          $msg = t('If you search for "!keys" on !link-text instead you will get !bibdk-num-results hits where some of them is the following: !examples',
             $options
           );
         }
-        $message = '<div class="messages search-field-in-content--message">' . $msg . '</div>';
+        $wrapper = '<div class="messages search-field-in-content--message">' . $msg . '</div>';
+        $message = l($wrapper, $options['!link'], ['html' => TRUE, 'absolute' => TRUE, 'attributes' => ['target' => 'blank']]);
         drupal_add_css(drupal_get_path('module', 'ting_subsearch_secondary') . '/ting_subsearch_secondary.css');
       }
     }
